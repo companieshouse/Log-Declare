@@ -1,4 +1,5 @@
 package Log::Declare;
+# ABSTRACT: A high performance Perl logging module.
 
 use strict;
 use Devel::Declare::Lexer;
