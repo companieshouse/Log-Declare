@@ -18,8 +18,9 @@ unless($ENV{LOG_DECLARE_NO_STARTUP_NOTICE}) {
 
 # These provide return values for injected keywords - a 0 here means the level
 # is completely disabled and won't be received by the log writer
-our @level_priority = ( 'info', 'error', 'warn', 'debug', 'trace' );
+our @level_priority = ( 'audit', 'info', 'error', 'warn', 'debug', 'trace' );
 our %levels = (
+    audit => sub { 1 },
     info  => sub { 1 },
     error => sub { 1 },
     warn  => sub { 1 },
@@ -183,8 +184,9 @@ BEGIN {
     };
 
     # Setup callbacks for each of the keywords
-    Devel::Declare::Lexer::lexed(info => $callback);
-    Devel::Declare::Lexer::lexed(warn => $callback);
+    Devel::Declare::Lexer::lexed(audit => $callback);
+    Devel::Declare::Lexer::lexed(info  => $callback);
+    Devel::Declare::Lexer::lexed(warn  => $callback);
     Devel::Declare::Lexer::lexed(error => $callback);
     Devel::Declare::Lexer::lexed(debug => $callback);
     Devel::Declare::Lexer::lexed(trace => $callback);
@@ -284,6 +286,7 @@ sub do_import {
     Devel::Declare::Lexer::import_for($caller, { 'debug' => sub { goto $Log::Declare::levels{'debug' } } } ) if !$t{':nodebug'};
     Devel::Declare::Lexer::import_for($caller, { 'warn'  => sub { goto $Log::Declare::levels{'warn'  } } } ) if !$t{':nowarn' };
     Devel::Declare::Lexer::import_for($caller, { 'info'  => sub { goto $Log::Declare::levels{'info'  } } } ) if !$t{':noinfo' };
+    Devel::Declare::Lexer::import_for($caller, { 'audit' => sub { goto $Log::Declare::levels{'audit' } } } ) if !$t{':noaudit'};
 }
 
 # -----------------------------------------------------------------------------
