@@ -1,5 +1,14 @@
 Revision history for Perl module Log::Declare
 
+0.06 2014-06-21
+ - introduce audit log level
+
+0.05 2014-06-20
+ - no changes
+
+0.04 2014-06-20
+ - no changes
+
 0.03 2013-12-04
  - remove unused dependencies
 

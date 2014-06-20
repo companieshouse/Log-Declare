@@ -7,8 +7,6 @@ package Log::Declare::t;
 
 use Test::More tests => 5;
 
-my $CLASS => 'Log::Declare';
-
 ###
 #
 # This test looks a bit weird - its because we're testing *compile* time output
@@ -52,13 +50,14 @@ done_testing();
 
 sub test_method_import {
     subtest "Test import" => sub {
-        plan tests => 5;
+        plan tests => 6;
 
         ok(defined &{'Log::Declare::t::trace'}, "Trace level is defined");
         ok(defined &{'Log::Declare::t::debug'}, "Debug level is defined");
         ok(defined &{'Log::Declare::t::error'}, "Error level is defined");
-        ok(defined &{'Log::Declare::t::warn'}, "Warn level is defined");
-        ok(defined &{'Log::Declare::t::info'}, "Info level is defined");
+        ok(defined &{'Log::Declare::t::warn' }, "Warn level is defined");
+        ok(defined &{'Log::Declare::t::info' }, "Info level is defined");
+        ok(defined &{'Log::Declare::t::audit'}, "Audit level is defined");
     };
     return;
 }
@@ -67,7 +66,7 @@ sub test_method_import {
 
 sub test_method_parser {
     subtest "Test log statement parser" => sub {
-        plan tests => 23;
+        plan tests => 24;
 
         # Capture STDERR and reopen it attached to a variable
         open SAVEERR, ">&STDERR";
@@ -100,6 +99,11 @@ sub test_method_parser {
         info "message";
         chomp $stderr;
         like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage/, 'Test info level');
+        $stderr = '';
+
+        audit "message";
+        chomp $stderr;
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[AUDIT\]\s\[GENERAL\]\smessage/, 'Test audit level');
         $stderr = '';
 
         my $a1 = 1;
