@@ -7,7 +7,7 @@ use Devel::Declare::Lexer::Token::Raw;
 use POSIX qw(strftime);
 use Data::Dumper; # for d: statements
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 my $startup_level = uc ($ENV{'LOG_DECLARE_STARTUP_LEVEL'} || 'ERROR');
 my $log_statement = "Log::Declare->log('%s', [%s], %s)%s";
