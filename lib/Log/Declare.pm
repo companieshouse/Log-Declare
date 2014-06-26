@@ -1,13 +1,30 @@
 package Log::Declare;
 # ABSTRACT: A high performance Perl logging module.
 
+use 5.10.0; # for //
 use strict;
+use warnings;
+
 use Devel::Declare::Lexer;
 use Devel::Declare::Lexer::Token::Raw;
 use POSIX qw(strftime);
 use Data::Dumper; # for d: statements
 
 our $VERSION = '0.06';
+
+my %LEVEL = (
+    TRACE   => 1,
+    DEBUG   => 2,
+    INFO    => 3,
+    WARN    => 4,
+    ERROR   => 5,
+    AUDIT   => 6,
+    OFF     => 7,
+    DISABLE => 7,
+);
+
+# XXX although it's not used here, don't remove this: it's required by MojoX::Log::Declare
+our @level_priority = qw(audit error warn info debug trace);
 
 my $startup_level = uc ($ENV{'LOG_DECLARE_STARTUP_LEVEL'} || 'ERROR');
 my $log_statement = "Log::Declare->log('%s', [%s], %s)%s";
@@ -18,7 +35,6 @@ unless($ENV{LOG_DECLARE_NO_STARTUP_NOTICE}) {
 
 # These provide return values for injected keywords - a 0 here means the level
 # is completely disabled and won't be received by the log writer
-our @level_priority = ( 'audit', 'info', 'error', 'warn', 'debug', 'trace' );
 our %levels = (
     audit => sub { 1 },
     info  => sub { 1 },
@@ -198,7 +214,7 @@ sub startup_level {
     my ($self, $level) = @_;
 
     return $startup_level unless $level;
-    $startup_level = $level;
+    $startup_level = uc $level;
     return $startup_level;
 }
 
@@ -217,25 +233,21 @@ sub log_statement {
 sub log {
     my ($self, $level, $categories, $message) = @_;
 
+    $level = uc $level;
+
+    # if the log level is invalid/mistyped, default to all levels (-1)
+    return unless $LEVEL{$level} >= ($LEVEL{$startup_level} // -1);
+
     if($categories) {
         $categories = scalar @$categories > 0 ? (join ', ', @$categories) : '';
         $categories = " [$categories]";
     }
-
-    my $allowed = 0;
-    for my $lvl (@Log::Declare::level_priority) {
-        $allowed = 1 if $lvl eq $level;
-        last if uc $lvl eq uc $startup_level;
-    }
-
-    return if !$allowed;
 
     my $ts = strftime $ENV{'LOG_DECLARE_DATE_FORMAT'} // "%a %b %e %H:%M:%S %Y",
                       ($ENV{'LOG_DECLARE_USE_LOCALTIME'} ? localtime : gmtime);
 
     $message .= "\n" if substr($message,-1) ne "\n";
 
-    $level = uc $level;
     return CORE::print STDERR "$$ [$ts] [$level]$categories $message";
 }
 
@@ -280,7 +292,7 @@ sub do_import {
     my %t = map { $_ => 1 } @tags;
     return if $t{':nosyntax'};
 
-    # Inject each of the keywords into callers namespace
+    # Inject each of the keywords into the caller's namespace
     Devel::Declare::Lexer::import_for($caller, { 'error' => sub { goto $Log::Declare::levels{'error' } } } ) if !$t{':noerror'};
     Devel::Declare::Lexer::import_for($caller, { 'trace' => sub { goto $Log::Declare::levels{'trace' } } } ) if !$t{':notrace'};
     Devel::Declare::Lexer::import_for($caller, { 'debug' => sub { goto $Log::Declare::levels{'debug' } } } ) if !$t{':nodebug'};
@@ -346,7 +358,7 @@ which means if 'info' returns 0, nothing else gets evaluated.
 
 =head1 NAMESPACES
 
-If you're using a namespace aware logger, Log::Declare can use your loggers
+If you're using a namespace-aware logger, Log::Declare can use your logger's
 namespacing to determine log levels. For example:
 
     $Log::Declare::levels{'debug'} = sub {
