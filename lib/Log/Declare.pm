@@ -13,36 +13,36 @@ use Data::Dumper; # for d: statements
 our $VERSION = '0.06';
 
 my %LEVEL = (
-    TRACE   => 1,
-    DEBUG   => 2,
-    INFO    => 3,
-    WARN    => 4,
-    ERROR   => 5,
-    AUDIT   => 6,
-    OFF     => 7,
-    DISABLE => 7,
+    ALL     => -1,
+    TRACE   =>  1,
+    DEBUG   =>  2,
+    INFO    =>  3,
+    WARN    =>  4,
+    ERROR   =>  5,
+    AUDIT   =>  6,
+    OFF     =>  7,
+    DISABLE =>  7,
 );
 
-# XXX although it's not used here, don't remove this: it's required by MojoX::Log::Declare
+# XXX be careful if removing/renaming this: it's required by MojoX::Log::Declare
 our @level_priority = qw(audit error warn info debug trace);
 
-my $startup_level = uc ($ENV{'LOG_DECLARE_STARTUP_LEVEL'} || 'ERROR');
+my ($LEVEL, $LEVEL_NAME);
+__PACKAGE__->startup_level($ENV{'LOG_DECLARE_STARTUP_LEVEL'} || 'ERROR'); # sets $LEVEL and $LEVEL_NAME
+
 my $log_statement = "Log::Declare->log('%s', [%s], %s)%s";
 
 unless($ENV{LOG_DECLARE_NO_STARTUP_NOTICE}) {
-    Log::Declare->log('INFO', ['LOGGER'], 'Got logger startup level of ' . $startup_level);
+    Log::Declare->log('INFO', ['LOGGER'], "Got logger startup level of $LEVEL_NAME");
 }
 
-# These provide return values for injected keywords - a 0 here means the level
-# is completely disabled and won't be received by the log writer
-our %levels = (
-    audit => sub { 1 },
-    info  => sub { 1 },
-    error => sub { 1 },
-    warn  => sub { 1 },
-    debug => sub { 1 },
-    trace => sub { 1 },
-);
+# XXX why is this public?
+our %levels;
+
+for my $name (@level_priority) {
+    my $level = $LEVEL{uc $name};
+    $levels{$name} = sub { $level >= $LEVEL };
+}
 
 BEGIN {
     my $callback = sub {
@@ -136,7 +136,7 @@ BEGIN {
                 if(ref($token) =~ /Devel::Declare::Lexer::Token::Comma/) {
                     push @categories, (uc "\"$buf\"") if $buf;
                     $buf = '';
-                    next; 
+                    next;
                 }
                 next if $buf eq '' && ref($token) =~ /Devel::Declare::Lexer::Token::Whitespace/;
                 $buf .= $token->{value};
@@ -210,12 +210,19 @@ BEGIN {
 
 # -----------------------------------------------------------------------------
 
+# set the global log level
+# FIXME this should be called level
 sub startup_level {
-    my ($self, $level) = @_;
+    my $self = shift;
 
-    return $startup_level unless $level;
-    $startup_level = uc $level;
-    return $startup_level;
+    if (@_) {
+        my $level = shift // '';
+        $LEVEL_NAME = uc $level;
+        # ALL: be forgiving if the name is invalid/mistyped (see below)
+        $LEVEL = $LEVEL{$LEVEL_NAME} // $LEVEL{ALL};
+    } else {
+        return $LEVEL_NAME;
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -231,12 +238,16 @@ sub log_statement {
 # -----------------------------------------------------------------------------
 
 sub log {
-    my ($self, $level, $categories, $message) = @_;
+    my ($self, $level_name, $categories, $message) = @_;
 
-    $level = uc $level;
+    $level_name = uc($level_name // '');
 
-    # if the log level is invalid/mistyped, default to all levels (-1)
-    return unless $LEVEL{$level} >= ($LEVEL{$startup_level} // -1);
+    # be forgiving if the log level is mistyped/invalid: it's going
+    # to be easier to remove an unwanted log message than to track
+    # down a bug that isn't being logged because of a typo
+    my $level = $LEVEL{$level_name} // $LEVEL;
+
+    return unless $level >= $LEVEL;
 
     if($categories) {
         $categories = scalar @$categories > 0 ? (join ', ', @$categories) : '';
@@ -248,7 +259,7 @@ sub log {
 
     $message .= "\n" if substr($message,-1) ne "\n";
 
-    return CORE::print STDERR "$$ [$ts] [$level]$categories $message";
+    return CORE::print STDERR "$$ [$ts] [$level_name]$categories $message";
 }
 
 # -----------------------------------------------------------------------------
@@ -293,12 +304,11 @@ sub do_import {
     return if $t{':nosyntax'};
 
     # Inject each of the keywords into the caller's namespace
-    Devel::Declare::Lexer::import_for($caller, { 'error' => sub { goto $Log::Declare::levels{'error' } } } ) if !$t{':noerror'};
-    Devel::Declare::Lexer::import_for($caller, { 'trace' => sub { goto $Log::Declare::levels{'trace' } } } ) if !$t{':notrace'};
-    Devel::Declare::Lexer::import_for($caller, { 'debug' => sub { goto $Log::Declare::levels{'debug' } } } ) if !$t{':nodebug'};
-    Devel::Declare::Lexer::import_for($caller, { 'warn'  => sub { goto $Log::Declare::levels{'warn'  } } } ) if !$t{':nowarn' };
-    Devel::Declare::Lexer::import_for($caller, { 'info'  => sub { goto $Log::Declare::levels{'info'  } } } ) if !$t{':noinfo' };
-    Devel::Declare::Lexer::import_for($caller, { 'audit' => sub { goto $Log::Declare::levels{'audit' } } } ) if !$t{':noaudit'};
+    # These provide return values for injected keywords - a 0 here means the level
+    # is completely disabled and won't be received by the log writer
+    for my $name (@level_priority) {
+        Devel::Declare::Lexer::import_for($caller, { $name => $levels{$name} }) if !$t{":no$name"};
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -321,7 +331,7 @@ the logging is disabled:
 
     $self->log(Dumper $myobject);
 
-but with Log::Declare we incur almost no performance penalty if 'info' level is 
+but with Log::Declare we incur almost no performance penalty if 'info' level is
 disabled, since the following log statement:
 
     info Dumper $myobject [mycategory];

@@ -37,13 +37,13 @@ BEGIN {
 
     $Log::Declare::t::init_stderr = $stderr;
 }
-    
+
 test_method_import();
 test_method_parser();
 test_method_namespace();
 test_method_auto();
 test_method_capture();
-    
+
 done_testing();
 
 # =============================================================================
@@ -209,10 +209,10 @@ sub test_method_parser {
         $stderr = '';
 
         # TODO this used to work with manual parsing, Devel::Declare::Lexer seems to struggle
-        info 
-            "message %s %s", 
-            $a, 
-            $b 
+        info
+            "message %s %s",
+            $a,
+            $b
             [cat1, cat2];
         chomp $stderr;
         like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1,\sCAT2\]\smessage a b/, 'Test multiple categories with multiple argument sprintf with variables and newlines');
@@ -231,6 +231,9 @@ sub test_method_namespace {
     subtest "Test namespace awareness" => sub {
         plan tests => 3;
 
+        # Localise log-level changes
+        local *trace;
+
         # Capture STDERR and reopen it attached to a variable
         open SAVEERR, ">&STDERR";
         close STDERR;
@@ -239,15 +242,16 @@ sub test_method_namespace {
 
         Log::Declare->startup_level('TRACE');
 
-        $Log::Declare::levels{'trace'} = sub {
+        *trace = sub {
             return 0;
         };
+
         trace "message";
         chomp $stderr;
         like($stderr, qr/^$/, 'Test disabled log level');
         $stderr = '';
 
-        $Log::Declare::levels{'trace'} = sub {
+        *trace = sub {
             return 1;
         };
         trace "message";
@@ -255,16 +259,13 @@ sub test_method_namespace {
         like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage/, 'Test enabled log level');
         $stderr = '';
 
-        $Log::Declare::levels{'trace'} = sub {
+        *trace = sub {
             my @caller = caller;
             is($caller[0], 'Log::Declare::t', 'Caller is correct');
             return 0;
         };
         trace "message";
 
-        # Restore log level
-        $Log::Declare::levels{'trace'} = sub { 1 };
-        
         # Close the new STDERR and point it back to the original
         close STDERR;
         open STDERR, ">&SAVEERR";
@@ -297,7 +298,7 @@ sub test_method_auto {
         chomp $stderr;
         like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage\sHASH/, 'Test auto ref');
         $stderr = '';
-        
+
         # Close the new STDERR and point it back to the original
         close STDERR;
         open STDERR, ">&SAVEERR";
@@ -350,7 +351,7 @@ sub test_method_capture {
         chomp $stderr;
         like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[DEBUG\]\s\[Test::Logger\]\sIntercepted/, 'Test intercepted capture');
         $stderr = '';
-        
+
         # Close the new STDERR and point it back to the original
         close STDERR;
         open STDERR, ">&SAVEERR";
