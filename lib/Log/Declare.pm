@@ -24,7 +24,7 @@ my %LEVEL = (
     DISABLE =>  7,
 );
 
-# XXX be careful if removing/renaming this: it's required by MojoX::Log::Declare
+# XXX be careful about removing/renaming this: it's required by MojoX::Log::Declare
 our @level_priority = qw(audit error warn info debug trace);
 
 my ($LEVEL, $LEVEL_NAME);
@@ -36,12 +36,22 @@ unless($ENV{LOG_DECLARE_NO_STARTUP_NOTICE}) {
     Log::Declare->log('INFO', ['LOGGER'], "Got logger startup level of $LEVEL_NAME");
 }
 
-# XXX why is this public?
+# this provides a way to globally override the behaviour of the injected keywords.
+# if replaced by e.g. a sub which returns 0, the level will be completely disabled and
+# the log writer won't be called. The original implementations can be restored at any
+# time by deleting the hooks.
+# XXX be careful about removing/renaming this: it's required for namespace hooks (see
+# the NAMESPACES section in the POD).
 our %levels;
 
+# define the exported trace, debug &c. subs. These delegate to the hooked implementations
+# in %levels (if defined); otherwise they return true/false if the level is enabled/disabled
+my %EXPORT;
 for my $name (@level_priority) {
+    my $hook;
     my $level = $LEVEL{uc $name};
-    $levels{$name} = sub { $level >= $LEVEL };
+    # goto &sub: make sure caller() works as expected in the hooked sub
+    $EXPORT{$name} = sub { ($hook = $levels{$name}) ? goto &$hook : $level >= $LEVEL };
 }
 
 BEGIN {
@@ -304,10 +314,10 @@ sub do_import {
     return if $t{':nosyntax'};
 
     # Inject each of the keywords into the caller's namespace
-    # These provide return values for injected keywords - a 0 here means the level
-    # is completely disabled and won't be received by the log writer
     for my $name (@level_priority) {
-        Devel::Declare::Lexer::import_for($caller, { $name => $levels{$name} }) if !$t{":no$name"};
+        Devel::Declare::Lexer::import_for($caller, {
+            $name => $EXPORT{$name}
+        }) if !$t{":no$name"};
     }
 }
 

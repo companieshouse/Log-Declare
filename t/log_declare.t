@@ -231,8 +231,8 @@ sub test_method_namespace {
     subtest "Test namespace awareness" => sub {
         plan tests => 3;
 
-        # Localise log-level changes
-        local *trace;
+        # limit %levels changes to this scope
+        local %Log::Declare::levels;
 
         # Capture STDERR and reopen it attached to a variable
         open SAVEERR, ">&STDERR";
@@ -242,16 +242,15 @@ sub test_method_namespace {
 
         Log::Declare->startup_level('TRACE');
 
-        *trace = sub {
+        $Log::Declare::levels{'trace'} = sub {
             return 0;
         };
-
         trace "message";
         chomp $stderr;
         like($stderr, qr/^$/, 'Test disabled log level');
         $stderr = '';
 
-        *trace = sub {
+        $Log::Declare::levels{'trace'} = sub {
             return 1;
         };
         trace "message";
@@ -259,7 +258,7 @@ sub test_method_namespace {
         like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage/, 'Test enabled log level');
         $stderr = '';
 
-        *trace = sub {
+        $Log::Declare::levels{'trace'} = sub {
             my @caller = caller;
             is($caller[0], 'Log::Declare::t', 'Caller is correct');
             return 0;
