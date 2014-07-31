@@ -10,7 +10,7 @@ use Devel::Declare::Lexer::Token::Raw;
 use POSIX qw(strftime);
 use Data::Dumper; # for d: statements
 
-our $VERSION = '0.06';
+our $VERSION = '0.10';
 
 my %LEVEL = (
     ALL     => -1,
