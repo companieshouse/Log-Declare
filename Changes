@@ -1,5 +1,13 @@
 Revision history for Perl module Log::Declare
 
+0.10 2014-07-31
+
+ - fix issue with trace, debug &c. always returning true/not short-circuiting
+ - fix INFO priority
+ - allow logging to be disabled via OFF or DISABLED
+ - more efficient level checking
+ - flag MojoX::Log::Declare compatibility gotcha
+
 0.06 2014-06-21
  - introduce audit log level
 
