@@ -1,3 +1,6 @@
 Log-Declare-*
 .build
 !META.json
+local/
+.gopancache/
+junit_output.xml
