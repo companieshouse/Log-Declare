@@ -19,7 +19,7 @@ sub is_enabled {
     local $Test::Builder::Level = $Test::Builder::Level + 1;
 
     # my $stderr = capture_stderr { system { $^X } ($^X, "$Bin/levels.pl") };
-    my $stderr = qx{ $^X -Mblib "$Bin/levels.pl" 2>&1 }; # XXX use Capture::Tiny
+    my $stderr = qx{ $^X "$Bin/levels.pl" 2>&1 }; # XXX use Capture::Tiny
     my @stderr = split $/, $stderr;
 
     is shift(@stderr), 'START';

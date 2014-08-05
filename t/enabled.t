@@ -29,7 +29,6 @@ $LEVEL{all} = $LEVEL{any} = $LEVEL{invalid} = $LEVEL{mistyped} = -1;
 {
     package Log::Declare::t;
 
-    use blib;
     use Log::Declare;
 
     sub get_enabled {
