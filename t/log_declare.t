@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-package Log::Declare::t;
+package Log::Declare::_Test;
 
 use Test::More tests => 5;
 
@@ -35,7 +35,7 @@ BEGIN {
 
     chomp $stderr if $stderr;
 
-    $Log::Declare::t::init_stderr = $stderr;
+    $Log::Declare::_Test::init_stderr = $stderr;
 }
 
 test_method_import();
@@ -52,12 +52,12 @@ sub test_method_import {
     subtest "Test import" => sub {
         plan tests => 6;
 
-        ok(defined &{'Log::Declare::t::trace'}, "Trace level is defined");
-        ok(defined &{'Log::Declare::t::debug'}, "Debug level is defined");
-        ok(defined &{'Log::Declare::t::error'}, "Error level is defined");
-        ok(defined &{'Log::Declare::t::warn' }, "Warn level is defined");
-        ok(defined &{'Log::Declare::t::info' }, "Info level is defined");
-        ok(defined &{'Log::Declare::t::audit'}, "Audit level is defined");
+        ok(defined &{'Log::Declare::_Test::trace'}, "Trace level is defined");
+        ok(defined &{'Log::Declare::_Test::debug'}, "Debug level is defined");
+        ok(defined &{'Log::Declare::_Test::error'}, "Error level is defined");
+        ok(defined &{'Log::Declare::_Test::warn' }, "Warn level is defined");
+        ok(defined &{'Log::Declare::_Test::info' }, "Info level is defined");
+        ok(defined &{'Log::Declare::_Test::audit'}, "Audit level is defined");
     };
     return;
 }
@@ -78,44 +78,44 @@ sub test_method_parser {
 
         trace "message";
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage/, 'Test trace level');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[_Test\]\smessage/, 'Test trace level');
         $stderr = '';
 
         debug "message";
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[DEBUG\]\s\[GENERAL\]\smessage/, 'Test debug level');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[DEBUG\]\s\[_Test\]\smessage/, 'Test debug level');
         $stderr = '';
 
         error "message";
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[ERROR\]\s\[GENERAL\]\smessage/, 'Test error level');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[ERROR\]\s\[_Test\]\smessage/, 'Test error level');
         $stderr = '';
 
         warn "message";
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[WARN\]\s\[GENERAL\]\smessage/, 'Test warn level');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[WARN\]\s\[_Test\]\smessage/, 'Test warn level');
         $stderr = '';
 
         info "message";
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage/, 'Test info level');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[_Test\]\smessage/, 'Test info level');
         $stderr = '';
 
         audit "message";
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[AUDIT\]\s\[GENERAL\]\smessage/, 'Test audit level');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[AUDIT\]\s\[_Test\]\smessage/, 'Test audit level');
         $stderr = '';
 
         my $a1 = 1;
         info "message" if $a1;
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage/, 'Test statement with if conditional');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[_Test\]\smessage/, 'Test statement with if conditional');
         $stderr = '';
 
         $a1 = 0;
         info "message" unless $a1;
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage/, 'Test statement with unless conditional');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[_Test\]\smessage/, 'Test statement with unless conditional');
         $stderr = '';
 
         $a1 = 1;
@@ -152,19 +152,19 @@ sub test_method_parser {
 
         info "message %s", 1;
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage 1/, 'Test single argument sprintf');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[_Test\]\smessage 1/, 'Test single argument sprintf');
         $stderr = '';
 
         info "message %s %s", 1, 2;
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage 1 2/, 'Test multiple argument sprintf');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[_Test\]\smessage 1 2/, 'Test multiple argument sprintf');
         $stderr = '';
 
         my $a = 'a'; my $b = 'b';
 
         info "message %s %s", $a, $b;
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage a b/, 'Test multiple argument sprintf with variables');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[_Test\]\smessage a b/, 'Test multiple argument sprintf with variables');
         $stderr = '';
 
         info "message" [cat1];
@@ -255,12 +255,12 @@ sub test_method_namespace {
         };
         trace "message";
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage/, 'Test enabled log level');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[_Test\]\smessage/, 'Test enabled log level');
         $stderr = '';
 
         $Log::Declare::levels{'trace'} = sub {
             my @caller = caller;
-            is($caller[0], 'Log::Declare::t', 'Caller is correct');
+            is($caller[0], 'Log::Declare::_Test', 'Caller is correct');
             return 0;
         };
         trace "message";
@@ -289,13 +289,13 @@ sub test_method_auto {
         my $var = 'test';
         trace "message %s", d:$var;
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage\s\$VAR1\s=\s'test'/, 'Test auto dump');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[_Test\]\smessage\s\$VAR1\s=\s'test'/, 'Test auto dump');
         $stderr = '';
 
         $var = {};
         trace "message %s", r:$var;
         chomp $stderr;
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage\sHASH/, 'Test auto ref');
+        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[_Test\]\smessage\sHASH/, 'Test auto ref');
         $stderr = '';
 
         # Close the new STDERR and point it back to the original

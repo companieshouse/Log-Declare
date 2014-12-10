@@ -153,7 +153,6 @@ BEGIN {
             }
             push @categories, uc("\"$buf\"") if $buf;
         }
-        push @categories, "\"GENERAL\"" if scalar @categories == 0;
 
         # Create a new stream from whats left
         my @ns = ();
@@ -260,8 +259,15 @@ sub log {
     return unless $level >= $LEVEL;
 
     if($categories) {
-        $categories = scalar @$categories > 0 ? (join ', ', @$categories) : '';
-        $categories = " [$categories]";
+        # default to the basename of the calling package
+        # e.g. Foo::Bar::Baz -> Baz
+        unless (@$categories) {
+            my $caller = caller;
+            my ($basename) = $caller =~ /(\w+)$/;
+            push @$categories, $basename;
+        }
+
+        $categories = sprintf ' [%s]', join(', ', @$categories);
     }
 
     my $ts = strftime $ENV{'LOG_DECLARE_DATE_FORMAT'} // "%a %b %e %H:%M:%S %Y",
