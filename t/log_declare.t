@@ -207,7 +207,7 @@ sub test_method_parser {
         like($stderr, _regex_builder('INFO', 'CAT1,\sCAT2', 'message a b'), 'Test multiple categories with multiple argument sprintf with variables');
         $stderr = '';
 
-        my ($answer, $question, $foo) = ('','','');
+        my ($answer, $question) = ('','');
         info "A [%s] B [%s]", $answer, $question [Consent, Validate];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CONSENT,\sVALIDATE', 'A\s\[\]\sB\s\[\]'), 'Test bug');
