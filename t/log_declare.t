@@ -84,51 +84,43 @@ sub test_method_parser {
         trace "message";
         chomp $stderr;
         like($stderr, _regex_builder(qw/ TRACE GENERAL message /), 'Test trace level');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage/, 'Test trace level');
         $stderr = '';
 
         debug "message";
         chomp $stderr;
         like($stderr, _regex_builder(qw/ DEBUG GENERAL message /), 'Test debug level');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[DEBUG\]\s\[GENERAL\]\smessage/, 'Test debug level');
         $stderr = '';
 
         error "message";
         chomp $stderr;
         like($stderr, _regex_builder(qw/ ERROR GENERAL message /), 'Test error level');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[ERROR\]\s\[GENERAL\]\smessage/, 'Test error level');
         $stderr = '';
 
         warn "message";
         chomp $stderr;
         like($stderr, _regex_builder(qw/ WARN GENERAL message /), 'Test warn level');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[WARN\]\s\[GENERAL\]\smessage/, 'Test warn level');
         $stderr = '';
 
         info "message";
         chomp $stderr;
         like($stderr, _regex_builder(qw/ INFO GENERAL message /), 'Test info level');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage/, 'Test info level');
         $stderr = '';
 
         audit "message";
         chomp $stderr;
         like($stderr, _regex_builder(qw/ AUDIT GENERAL message /), 'Test audit level');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[AUDIT\]\s\[GENERAL\]\smessage/, 'Test audit level');
         $stderr = '';
 
         my $a1 = 1;
         info "message" if $a1;
         chomp $stderr;
         like($stderr, _regex_builder(qw/ INFO GENERAL message /), 'Test statement with if conditional');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage/, 'Test statement with if conditional');
         $stderr = '';
 
         $a1 = 0;
         info "message" unless $a1;
         chomp $stderr;
         like($stderr, _regex_builder(qw/ INFO GENERAL message /), 'Test statement with unless conditional');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage/, 'Test statement with unless conditional');
         $stderr = '';
 
         $a1 = 1;
@@ -166,13 +158,11 @@ sub test_method_parser {
         info "message %s", 1;
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'GENERAL', 'message 1'), 'Test single argument sprintf');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage 1/, 'Test single argument sprintf');
         $stderr = '';
 
         info "message %s %s", 1, 2;
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'GENERAL', 'message 1 2'), 'Test multiple argument sprintf');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage 1 2/, 'Test multiple argument sprintf');
         $stderr = '';
 
         my $a = 'a'; my $b = 'b';
@@ -180,56 +170,47 @@ sub test_method_parser {
         info "message %s %s", $a, $b;
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'GENERAL', 'message a b'), 'Test multiple argument sprintf with variables');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[GENERAL\]\smessage a b/, 'Test multiple argument sprintf with variables');
         $stderr = '';
 
         info "message" [cat1];
         chomp $stderr;
         like($stderr, _regex_builder(qw/ INFO CAT1 message /), 'Test single categories');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1\]\smessage/, 'Test single categories');
         $stderr = '';
 
         info "message" [cat1, cat2];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CAT1,\sCAT2', 'message'), 'Test multiple categories');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1,\sCAT2\]\smessage/, 'Test multiple categories');
         $stderr = '';
 
         info "message %s", 1 [cat1];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CAT1', 'message 1'), 'Test single categories with single argument sprintf');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1\]\smessage 1/, 'Test single categories with single argument sprintf');
         $stderr = '';
 
         info "message %s %s", 1, 2 [cat1];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CAT1', 'message 1 2'), 'Test single categories with multiple argument sprintf');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1\]\smessage 1 2/, 'Test single categories with multiple argument sprintf');
         $stderr = '';
 
         info "message %s %s", $a [cat1];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CAT1', 'message a'), 'Test single categories with single argument sprintf with variables');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1\]\smessage a/, 'Test single categories with single argument sprintf with variables');
         $stderr = '';
 
         info "message %s %s", $a, $b [cat1];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CAT1', 'message a b'), 'Test single categories with multiple argument sprintf with variables');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1\]\smessage a b/, 'Test single categories with multiple argument sprintf with variables');
         $stderr = '';
 
         info "message %s %s", $a, $b [cat1, cat2];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CAT1,\sCAT2', 'message a b'), 'Test multiple categories with multiple argument sprintf with variables');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1,\sCAT2\]\smessage a b/, 'Test multiple categories with multiple argument sprintf with variables');
         $stderr = '';
 
         my ($answer, $question, $foo) = ('','','');
         info "A [%s] B [%s]", $answer, $question [Consent, Validate];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CONSENT,\sVALIDATE', 'A\s\[\]\sB\s\[\]'), 'Test bug');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CONSENT,\sVALIDATE\]\sA\s\[\]\sB\s\[\]/, 'Test bug');
         $stderr = '';
 
         # TODO this used to work with manual parsing, Devel::Declare::Lexer seems to struggle
@@ -240,7 +221,6 @@ sub test_method_parser {
             [cat1, cat2];
         chomp $stderr;
         like($stderr, _regex_builder('INFO', 'CAT1,\sCAT2', 'message a b'), 'Test multiple categories with multiple argument sprintf with variables and newlines');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[INFO\]\s\[CAT1,\sCAT2\]\smessage a b/, 'Test multiple categories with multiple argument sprintf with variables and newlines');
         $stderr = '';
 
         # Close the new STDERR and point it back to the original
@@ -281,7 +261,6 @@ sub test_method_namespace {
         trace "message";
         chomp $stderr;
         like($stderr, _regex_builder(qw/ TRACE GENERAL message /), 'Test enabled log level');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage/, 'Test enabled log level');
         $stderr = '';
 
         $Log::Declare::levels{'trace'} = sub {
@@ -316,14 +295,12 @@ sub test_method_auto {
         trace "message %s", d:$var;
         chomp $stderr;
         like($stderr, _regex_builder(qw/ TRACE GENERAL message\s\$VAR1\s=\s'test' /), 'Test auto dump');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage\s\$VAR1\s=\s'test'/, 'Test auto dump');
         $stderr = '';
 
         $var = {};
         trace "message %s", r:$var;
         chomp $stderr;
         like($stderr, _regex_builder(qw/ TRACE GENERAL message\sHASH /), 'Test auto ref');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[TRACE\]\s\[GENERAL\]\smessage\sHASH/, 'Test auto ref');
         $stderr = '';
 
         # Close the new STDERR and point it back to the original
@@ -367,7 +344,6 @@ sub test_method_capture {
         $logger->log("test");
         chomp $stderr;
         like($stderr, _regex_builder(qw/ DEBUG Test::Logger test /), 'Test auto-capture');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[DEBUG\]\s\[Test::Logger\]\stest/, 'Test auto-capture');
         $stderr = '';
 
         Log::Declare->capture('Test::Logger::log' => sub {
@@ -378,7 +354,6 @@ sub test_method_capture {
         $logger->log("test");
         chomp $stderr;
         like($stderr, _regex_builder(qw/ DEBUG Test::Logger Intercepted /), 'Test intercepted capture');
-        like($stderr, qr/\[\w+\s+\w+\s+\d+\s\d+:\d+:\d+\s\d+\]\s\[DEBUG\]\s\[Test::Logger\]\sIntercepted/, 'Test intercepted capture');
         $stderr = '';
 
         # Close the new STDERR and point it back to the original
