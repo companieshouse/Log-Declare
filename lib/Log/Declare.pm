@@ -10,7 +10,7 @@ use Devel::Declare::Lexer::Token::Raw;
 use POSIX qw(strftime);
 use Data::Dumper; # for d: statements
 
-our $VERSION = '0.10';
+our $VERSION = '0.20';
 
 my %LEVEL = (
     ALL     => -1,
@@ -27,6 +27,9 @@ my %LEVEL = (
 # XXX be careful about removing/renaming this: it's required by MojoX::Log::Declare
 our @level_priority = qw(audit error warn info debug trace);
 
+# The appender obj used to display the log message. This replaces the default action
+# which is to display the log message to standard error.
+my ($APPENDER);
 my ($LEVEL, $LEVEL_NAME);
 __PACKAGE__->startup_level($ENV{'LOG_DECLARE_STARTUP_LEVEL'} || 'ERROR'); # sets $LEVEL and $LEVEL_NAME
 
@@ -237,6 +240,19 @@ sub startup_level {
 
 # -----------------------------------------------------------------------------
 
+# set the appender
+sub appender {
+    my $self = shift;
+
+    if (@_) {
+        $APPENDER = shift;
+    } else {
+        return $APPENDER;
+    }
+}
+
+# -----------------------------------------------------------------------------
+
 sub log_statement {
     my ($self, $statement) = @_;
 
@@ -268,8 +284,12 @@ sub log {
                       ($ENV{'LOG_DECLARE_USE_LOCALTIME'} ? localtime : gmtime);
 
     $message .= "\n" if substr($message,-1) ne "\n";
+    my $log_message = "$$ [$ts] [$level_name]$categories $message";
 
-    return CORE::print STDERR "$$ [$ts] [$level_name]$categories $message";
+    return CORE::print STDERR $log_message if !defined $APPENDER;
+
+    my $log_method = lc($level_name);
+    return $APPENDER->$log_method($log_message);
 }
 
 # -----------------------------------------------------------------------------
@@ -368,6 +388,9 @@ which means if 'info' returns 0, nothing else gets evaluated.
     # auto-ref variables with ref()
     debug "Using sprintf format: %s", r:$error [category];
 
+    # Use the appender to log messages
+    Log::Declare->appender($appender);
+
     # capture other loggers (loses Log::Declare performance)
     Log::Declare->capture('Test::Logger::log');
     Log::Declare->capture('Test::Logger::log' => sub {
@@ -384,6 +407,12 @@ namespacing to determine log levels. For example:
     $Log::Declare::levels{'debug'} = sub {
         Log::Log4perl->get_logger(caller)->is_debug;
     };
+
+=head1 APPENDER
+
+Assign a log appender object which will reassign from the default which output device
+the log data is being written to. The only requirement for the appender object is that
+it has methods whose name matches the log levels.
 
 =cut
 
