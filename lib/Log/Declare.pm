@@ -10,9 +10,9 @@ use Devel::Declare::Lexer::Token::Raw;
 use POSIX qw(strftime);
 use Data::Dumper; # for d: statements
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
-my %LEVEL = (
+our %LEVEL = (
     ALL     => -1,
     TRACE   =>  1,
     DEBUG   =>  2,
@@ -27,7 +27,7 @@ my %LEVEL = (
 # XXX be careful about removing/renaming this: it's required by MojoX::Log::Declare
 our @level_priority = qw(audit error warn info debug trace);
 
-my ($LEVEL, $LEVEL_NAME);
+our ($LEVEL, $LEVEL_NAME);
 __PACKAGE__->startup_level($ENV{'LOG_DECLARE_STARTUP_LEVEL'} || 'ERROR'); # sets $LEVEL and $LEVEL_NAME
 
 my $log_statement = "Log::Declare->log('%s', [%s], %s)%s";
@@ -50,8 +50,11 @@ my %EXPORT;
 for my $name (@level_priority) {
     my $hook;
     my $level = $LEVEL{uc $name};
+
     # goto &sub: make sure caller() works as expected in the hooked sub
-    $EXPORT{$name} = sub { ($hook = $levels{$name}) ? goto &$hook : $level >= $LEVEL };
+    $EXPORT{$name} = sub { 
+           ($hook = $levels{$name}) ? goto &$hook : $level >= $LEVEL 
+    };
 }
 
 BEGIN {
