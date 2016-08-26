@@ -25,6 +25,13 @@ gets rewritten as:
 
 which means if 'info' returns 0, nothing else gets evaluated.
 
+Structured logging is also available through the Log::Declare::Structured module which provides
+all the functionality of Log::Declare:
+
+    debug { request => sub { return 'context' }, message => "log this request" } [DEBUG REQUEST]
+
+which results in a corresponding JSON document being logged.
+
 # SYNOPSIS
 
     use Log::Declare;
@@ -48,6 +55,15 @@ which means if 'info' returns 0, nothing else gets evaluated.
         # manipulate logger args here
         return @args;
     });
+
+    use Log::Declare::Structured;
+    use Log::Declare::Structured qw/ :nosyntax /; # disables syntactic sugar
+    use Log::Declare::Structured qw/ :nowarn :noerror ... /; # disables specific sugar
+
+    debug { message => 'log message' } [category];
+
+    # log message with context
+    info  { context => { key => "value"}, message => 'info message'} [category];
 
 # NAMESPACES
 
