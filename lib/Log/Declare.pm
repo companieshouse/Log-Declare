@@ -10,7 +10,7 @@ use Devel::Declare::Lexer::Token::Raw;
 use POSIX qw(strftime);
 use Data::Dumper; # for d: statements
 
-our $VERSION = '0.11';
+our $VERSION = '0.20';
 
 our %LEVEL = (
     ALL     => -1,
@@ -57,106 +57,167 @@ for my $name (@level_priority) {
     };
 }
 
+# -----------------------------------------------------------------------------
+
+sub setup_callbacks {
+    my ($class, $callback) = @_;
+
+    Devel::Declare::Lexer::lexed(audit => $callback);
+    Devel::Declare::Lexer::lexed(info  => $callback);
+    Devel::Declare::Lexer::lexed(warn  => $callback);
+    Devel::Declare::Lexer::lexed(error => $callback);
+    Devel::Declare::Lexer::lexed(debug => $callback);
+    Devel::Declare::Lexer::lexed(trace => $callback);
+
+}
+
+# -----------------------------------------------------------------------------
+
+sub get_declarator {
+    my ($class, $stream) = @_;
+
+    # Get the declarator
+    return shift @{$stream};
+}
+
+# -----------------------------------------------------------------------------
+
+sub remove_end_of_line_whitespace {
+    my ($class, $stream) = @_;
+
+    while (ref($stream->[0]) =~ /Devel::Declare::Lexer::Token::Whitespace/) {
+        shift @{$stream}; # remove the whitespace
+    }
+
+    if(ref($stream->[scalar @{$stream} - 1]) =~ /Devel::Declare::Lexer::Token::Newline/) {
+        pop @{$stream}; # remove the newline
+    }
+    pop @{$stream}; # remove the semicolon
+
+    return 1;
+}
+
+# -----------------------------------------------------------------------------
+
+sub get_conditional_tokens {
+    my ($class, $stream) = @_;
+ 
+    # Extract the conditional tokens
+
+    # Work backwards from the end looking for if statement
+    my ($nested, $ifStart) = (0, -1);
+    my $token;
+    for(my $i = scalar @{$stream} - 1; $i >= 0; $i--) {
+        $token = $stream->[$i];
+
+        if(ref($token) =~ /Devel::Declare::Lexer::Token::RightBracket/ &&
+            $token->{value} =~ /\]/) {
+            $nested++;
+            next;
+        }
+        if(ref($token) =~ /Devel::Declare::Lexer::Token::LeftBracket/ &&
+            $token->{value} =~ /\[/) {
+            $nested--;
+            next;
+        }
+        if($nested == 0 && ref($token) =~ /Devel::Declare::Lexer::Token::Bareword/ &&
+            ($token->{value} eq 'if' || $token->{value} eq 'unless')) {
+                $ifStart = $i;
+                last;
+            }
+    }
+
+    my @condTokens;
+    if($ifStart > -1) {
+        my $soc = $ifStart;
+        my $eoc = scalar @{$stream} - 1;
+        @condTokens = @{$stream}[$soc .. $eoc];
+        @{$stream} = @{$stream}[0 .. $ifStart - 1];
+    }
+
+    return \@condTokens;
+}
+
+# -----------------------------------------------------------------------------
+
+sub get_categories {
+    my ($class, $stream) = @_;
+
+    # Work backwards from the end looking for categories
+    my $nested = 0;
+    my $catStart = -1;
+
+    my $token;
+    for(my $i = scalar @{$stream} - 1; $i >= 0; $i--) {
+        $token = $stream->[$i];
+
+        if(ref($token) =~ /Devel::Declare::Lexer::Token::RightBracket/ &&
+            $token->{value} =~ /\]/) {
+            $nested++;
+            next;
+        }
+
+        if(ref($token) =~ /Devel::Declare::Lexer::Token::LeftBracket/ &&
+            $token->{value} =~ /\[/) {
+            $nested--;
+            if($nested == 0) {
+                if($stream->[$i-1] && ref($stream->[$i-1]) !~ /Devel::Declare::Lexer::Token::Whitespace/) {
+                    next;
+                }
+                $catStart = $i;
+                last;
+            }
+            next;
+        }
+    }
+
+    # Extract the category tokens
+    my @catTokens;
+    if($catStart > -1) {
+        my $soc = $catStart + 1;
+        my $eoc = scalar @{$stream} - 2;
+        @catTokens = @{$stream}[$soc .. $eoc];
+        @{$stream} = @{$stream}[0 .. $catStart - 1];
+    }
+
+    # Convert the tokens into a list of category names
+    my @categories;
+    if(@catTokens) {
+        my $buf = '';
+        for my $token (@catTokens) {
+            if(ref($token) =~ /Devel::Declare::Lexer::Token::Comma/) {
+                push @categories, (uc "\"$buf\"") if $buf;
+                $buf = '';
+                next;
+            }
+            next if $buf eq '' && ref($token) =~ /Devel::Declare::Lexer::Token::Whitespace/;
+            $buf .= $token->{value};
+        }
+        push @categories, uc("\"$buf\"") if $buf;
+    }
+    else {
+        push @categories, "\"GENERAL\"";
+    }
+
+    return \@categories;
+}
+
+# -----------------------------------------------------------------------------
+
 BEGIN {
     my $callback = sub {
         my ($stream_r) = @_;
         my @stream = @$stream_r;
 
         # Get the declarator
-        my $decl = $stream[0];
+        my $decl = Log::Declare->get_declarator(\@stream);
 
-        shift @stream; # remove the declarator
-        while (ref($stream[0]) =~ /Devel::Declare::Lexer::Token::Whitespace/) {
-            shift @stream; # remove the whitespace
-        }
-
-        if(ref($stream[$#stream]) =~ /Devel::Declare::Lexer::Token::Newline/) {
-            pop @stream; # remove the newline
-        }
-        pop @stream; # remove the semicolon
-
-        # Work backwards from the end looking for if statement
-        my $nested = 0;
-        my $ifStart = -1;
-        for(my $i = $#stream; $i >= 0; $i--) {
-            my $token = $stream[$i];
-
-            if(ref($token) =~ /Devel::Declare::Lexer::Token::RightBracket/ &&
-               $token->{value} =~ /\]/) {
-                $nested++;
-                next;
-            }
-            if(ref($token) =~ /Devel::Declare::Lexer::Token::LeftBracket/ &&
-               $token->{value} =~ /\[/) {
-                $nested--;
-                next;
-            }
-            if($nested == 0 && ref($token) =~ /Devel::Declare::Lexer::Token::Bareword/ &&
-                ($token->{value} eq 'if' || $token->{value} eq 'unless')) {
-                $ifStart = $i;
-                last;
-            }
-        }
+        # Remove any white space characters at the eol
+        Log::Declare->remove_end_of_line_whitespace(\@stream);
 
         # Extract the conditional tokens
-        my @condTokens;
-        if($ifStart > -1) {
-            my $soc = $ifStart;
-            my $eoc = $#stream;
-            @condTokens = @stream[$soc .. $eoc];
-            @stream = @stream[0 .. $ifStart - 1];
-        }
-
-        # Work backwards from the end looking for categories
-        $nested = 0;
-        my $catStart = -1;
-        for(my $i = $#stream; $i >= 0; $i--) {
-            my $token = $stream[$i];
-
-            if(ref($token) =~ /Devel::Declare::Lexer::Token::RightBracket/ &&
-               $token->{value} =~ /\]/) {
-                $nested++;
-                next;
-            }
-            if(ref($token) =~ /Devel::Declare::Lexer::Token::LeftBracket/ &&
-               $token->{value} =~ /\[/) {
-                $nested--;
-                if($nested == 0) {
-                    if($stream[$i-1] && ref($stream[$i-1]) !~ /Devel::Declare::Lexer::Token::Whitespace/) {
-                        next;
-                    }
-                    $catStart = $i;
-                    last;
-                }
-                next;
-            }
-        }
-
-        # Extract the category tokens
-        my @catTokens;
-        if($catStart > -1) {
-            my $soc = $catStart + 1;
-            my $eoc = $#stream - 1;
-            @catTokens = @stream[$soc .. $eoc];
-            @stream = @stream[0 .. $catStart - 1];
-        }
-
-        # Convert the tokens into a list of category names
-        my @categories;
-        if(scalar @catTokens) {
-            my $buf = '';
-            for my $token (@catTokens) {
-                if(ref($token) =~ /Devel::Declare::Lexer::Token::Comma/) {
-                    push @categories, (uc "\"$buf\"") if $buf;
-                    $buf = '';
-                    next;
-                }
-                next if $buf eq '' && ref($token) =~ /Devel::Declare::Lexer::Token::Whitespace/;
-                $buf .= $token->{value};
-            }
-            push @categories, uc("\"$buf\"") if $buf;
-        }
-        push @categories, "\"GENERAL\"" if scalar @categories == 0;
+        my $condTokens = Log::Declare->get_conditional_tokens(\@stream); 
+        my $categories = Log::Declare->get_categories(\@stream);
 
         # Create a new stream from whats left
         my @ns = ();
@@ -183,7 +244,7 @@ BEGIN {
 
         # Reconstruct the log statement
         my $level = $decl->{value};
-        my $cats = join ', ', @categories;
+        my $cats = join ', ', @{$categories};
         my $inner = join '', map { $_->get } @stream;
 
         # Handle prefixes
@@ -198,7 +259,7 @@ BEGIN {
         } else {
             $msg = $inner;
         }
-        my $cond = ' ' . join '', map { $_->get } @condTokens;
+        my $cond = ' ' . join '', map { $_->get } @{$condTokens};
 
         my $output = Devel::Declare::Lexer::Token::Raw->new(
             value => sprintf($log_statement, $level, $cats, $msg, $cond)
@@ -213,12 +274,7 @@ BEGIN {
     };
 
     # Setup callbacks for each of the keywords
-    Devel::Declare::Lexer::lexed(audit => $callback);
-    Devel::Declare::Lexer::lexed(info  => $callback);
-    Devel::Declare::Lexer::lexed(warn  => $callback);
-    Devel::Declare::Lexer::lexed(error => $callback);
-    Devel::Declare::Lexer::lexed(debug => $callback);
-    Devel::Declare::Lexer::lexed(trace => $callback);
+    Log::Declare->setup_callbacks($callback);
 }
 
 # -----------------------------------------------------------------------------
@@ -355,6 +411,13 @@ gets rewritten as:
 
 which means if 'info' returns 0, nothing else gets evaluated.
 
+Structured logging is also available through the Log::Declare::Structured module which provides
+all the functionality of Log::Declare:
+
+    debug { request => sub { return 'context' }, message => "log this request" } [DEBUG REQUEST]
+
+which results in a corresponding JSON document being logged.
+
 =head1 SYNOPSIS
 
     use Log::Declare;
@@ -378,6 +441,15 @@ which means if 'info' returns 0, nothing else gets evaluated.
         # manipulate logger args here
         return @args;
     });
+
+    use Log::Declare::Structured;
+    use Log::Declare::Structured qw/ :nosyntax /; # disables syntactic sugar
+    use Log::Declare::Structured qw/ :nowarn :noerror ... /; # disables specific sugar
+
+    debug { message => 'log message' } [category];
+
+    # log message with context
+    info  { context => { key => "value"}, message => 'info message'} [category];
 
 =head1 NAMESPACES
 
